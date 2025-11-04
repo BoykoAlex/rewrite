@@ -31,11 +31,16 @@ import org.openrewrite.maven.MavenDownloadingException;
 import org.openrewrite.maven.table.MavenMetadataFailures;
 import org.openrewrite.maven.tree.GroupArtifact;
 import org.openrewrite.maven.tree.GroupArtifactVersion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Predicate;
 
 @RequiredArgsConstructor
 public class AddDependencyVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AddDependencyVisitor.class);
+
     private final String groupId;
     private final String artifactId;
 
@@ -70,17 +75,29 @@ public class AddDependencyVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private transient boolean isKotlinDsl;
 
+    private boolean isMyTest() {
+        return "jakarta.xml.bind-api".equals(artifactId);
+    }
+
     @Override
     public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
         if (tree instanceof JavaSourceFile) {
             JavaSourceFile sourceFile = (JavaSourceFile) tree;
             gradleProject = sourceFile.getMarkers().findFirst(GradleProject.class).orElse(null);
+            if (isMyTest()) {
+                LOG.error("!!! VISITOR !!!");
+            }
+
             if (gradleProject == null) {
                 return sourceFile;
             }
 
             GradleDependencyConfiguration gdc = gradleProject.getConfiguration(configuration);
             if (gdc == null || gdc.findRequestedDependency(groupId, artifactId) != null) {
+                if (isMyTest()) {
+                    LOG.error("!!! Found Dependency !!!\n" + gdc.toString());
+                }
+
                 return sourceFile;
             }
 
@@ -98,6 +115,9 @@ public class AddDependencyVisitor extends JavaIsoVisitor<ExecutionContext> {
                 }
             }
 
+            if (isMyTest()) {
+                LOG.error("!!! INTERNAL VISITOR !!!");
+            }
             sourceFile = (JavaSourceFile) new org.openrewrite.gradle.internal.AddDependencyVisitor(configuration, groupId, artifactId, resolvedVersion, classifier, extension, insertPredicate, dependencyModifier, isKotlinDsl)
                     .visitNonNull(sourceFile, ctx);
 
