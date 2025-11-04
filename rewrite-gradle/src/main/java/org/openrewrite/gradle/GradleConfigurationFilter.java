@@ -20,10 +20,12 @@ import lombok.RequiredArgsConstructor;
 import org.openrewrite.gradle.marker.GradleDependencyConfiguration;
 import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.maven.tree.GroupArtifact;
+import org.openrewrite.maven.tree.ResolvedDependency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,7 +62,9 @@ class GradleConfigurationFilter {
             if (gdc == null || gdc.findRequestedDependency(dependency.getGroupId(), dependency.getArtifactId()) != null) {
                 if (isMyTest(dependency)) {
                     LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains xml bind !!!");
-                    LOG.error(gdc.getResolved().stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
+                    List<ResolvedDependency> allDeps = gdc.getResolved();
+                    LOG.error("All deps number: " + allDeps.size());
+                    LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
                 }
                 filteredConfigurations.remove(tmpConfiguration);
             }
@@ -75,6 +79,8 @@ class GradleConfigurationFilter {
                 if (transitive.findResolvedDependency(dependency.getGroupId(), dependency.getArtifactId()) != null) {
                     if (isMyTest(dependency)) {
                         LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains transitive dependency on xml bind !!!");
+                        List<ResolvedDependency> allDeps = gdc.getResolved();
+                        LOG.error("All deps number: " + allDeps.size());
                         LOG.error(gdc.getResolved().stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
                     }
                     filteredConfigurations.remove(tmpConfiguration);
