@@ -20,14 +20,19 @@ import lombok.RequiredArgsConstructor;
 import org.openrewrite.gradle.marker.GradleDependencyConfiguration;
 import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.maven.tree.GroupArtifact;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor
 class GradleConfigurationFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(GradleConfigurationFilter.class);
+
     private final GradleProject gradleProject;
 
     @Getter
@@ -43,11 +48,20 @@ class GradleConfigurationFilter {
         }
     }
 
+    private boolean isMyTest(GroupArtifact dependency) {
+        return "jakarta.xml.bind-api".equals(dependency.getArtifactId());
+    }
+
+
     public void removeConfigurationsContainingDependency(GroupArtifact dependency) {
         Set<String> tmpConfigurations = new HashSet<>(filteredConfigurations);
         for (String tmpConfiguration : tmpConfigurations) {
             GradleDependencyConfiguration gdc = gradleProject.getConfiguration(tmpConfiguration);
             if (gdc == null || gdc.findRequestedDependency(dependency.getGroupId(), dependency.getArtifactId()) != null) {
+                if (isMyTest(dependency)) {
+                    LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains xml bind !!!");
+                    LOG.error(gdc.getResolved().stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
+                }
                 filteredConfigurations.remove(tmpConfiguration);
             }
         }
@@ -59,6 +73,10 @@ class GradleConfigurationFilter {
             GradleDependencyConfiguration gdc = requireNonNull(gradleProject.getConfiguration(tmpConfiguration));
             for (GradleDependencyConfiguration transitive : gradleProject.configurationsExtendingFrom(gdc, true)) {
                 if (transitive.findResolvedDependency(dependency.getGroupId(), dependency.getArtifactId()) != null) {
+                    if (isMyTest(dependency)) {
+                        LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains transitive dependency on xml bind !!!");
+                        LOG.error(gdc.getResolved().stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
+                    }
                     filteredConfigurations.remove(tmpConfiguration);
                 }
             }
