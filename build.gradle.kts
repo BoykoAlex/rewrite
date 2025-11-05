@@ -1,7 +1,7 @@
 plugins {
-    id("org.openrewrite.build.root") version("latest.release")
-    id("org.openrewrite.build.java-base") version("latest.release")
-    id("org.owasp.dependencycheck") version("latest.release")
+    id("org.openrewrite.build.root") version("1.134.0")
+    id("org.openrewrite.build.java-base") version("1.134.0")
+    id("org.owasp.dependencycheck") version("10.0.2")
 }
 
 configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {

@@ -1,5 +1,5 @@
 plugins {
-    id("org.openrewrite.build.language-library") version("latest.release")
+    id("org.openrewrite.build.language-library") version("1.134.0")
 }
 
 sourceSets {
