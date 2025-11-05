@@ -65,7 +65,7 @@ class GradleConfigurationFilter {
                     LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains xml bind !!!");
                     List<Dependency> allDeps = gdc.getRequested();
                     LOG.error("All deps number: " + allDeps.size());
-                    LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
+                    LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ":" + gav.getVersion()).collect(Collectors.joining("\n")));
                 }
                 filteredConfigurations.remove(tmpConfiguration);
             }
@@ -82,7 +82,7 @@ class GradleConfigurationFilter {
                         LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains transitive dependency on xml bind !!!");
                         List<Dependency> allDeps = gdc.getRequested();
                         LOG.error("All deps number: " + allDeps.size());
-                        LOG.error(gdc.getResolved().stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ";" + gav.getVersion()).collect(Collectors.joining("\n")));
+                        LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ":" + gav.getVersion()).collect(Collectors.joining("\n")));
                     }
                     filteredConfigurations.remove(tmpConfiguration);
                 }
