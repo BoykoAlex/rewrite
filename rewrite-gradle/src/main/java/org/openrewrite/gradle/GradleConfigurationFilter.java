@@ -74,15 +74,21 @@ class GradleConfigurationFilter {
 
     public void removeConfigurationsContainingTransitiveDependency(GroupArtifact dependency) {
         Set<String> tmpConfigurations = new HashSet<>(filteredConfigurations);
+        if (isMyTest(dependency)) {
+            LOG.error("!!! Configs initially: " + String.join(", ", tmpConfigurations));
+        }
         for (String tmpConfiguration : tmpConfigurations) {
             GradleDependencyConfiguration gdc = requireNonNull(gradleProject.getConfiguration(tmpConfiguration));
+            if (isMyTest(dependency)) {
+                LOG.error("!!! Conf `" + tmpConfiguration + "` extending from: " + gradleProject.configurationsExtendingFrom(gdc, true).stream().map(gc -> gc.getName()).collect(Collectors.joining(",")));
+            }
             for (GradleDependencyConfiguration transitive : gradleProject.configurationsExtendingFrom(gdc, true)) {
                 if (transitive.findResolvedDependency(dependency.getGroupId(), dependency.getArtifactId()) != null) {
                     if (isMyTest(dependency)) {
                         LOG.error("!!! Removing '" + tmpConfiguration + "' since it contains transitive dependency on xml bind !!!");
-                        List<Dependency> allDeps = gdc.getRequested();
-                        LOG.error("All deps number: " + allDeps.size());
-                        LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ":" + gav.getVersion()).collect(Collectors.joining("\n")));
+//                        List<Dependency> allDeps = gdc.getRequested();
+//                        LOG.error("All deps number: " + allDeps.size());
+//                        LOG.error(allDeps.stream().map(d -> d.getGav()).map(gav -> gav.getGroupId() + ":" + gav.getArtifactId() + ":" + gav.getVersion()).collect(Collectors.joining("\n")));
                     }
                     filteredConfigurations.remove(tmpConfiguration);
                 }

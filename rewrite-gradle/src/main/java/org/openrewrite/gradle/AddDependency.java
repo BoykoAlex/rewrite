@@ -226,7 +226,14 @@ public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
                                 acc.configurationsByProject.getOrDefault(jp, new HashSet<>()) :
                                 new HashSet<>(singletonList(configuration));
                         if (resolvedConfigurations.isEmpty()) {
+                            if (isMyTest()) {
+                                LOG.error("!!! Add implementation");
+                            }
                             resolvedConfigurations.add("implementation");
+                        }
+
+                        if (isMyTest()) {
+                            LOG.error("!!! Resolved configs: " + String.join(", ", resolvedConfigurations));
                         }
 
                         GradleConfigurationFilter gradleConfigurationFilter = new GradleConfigurationFilter(gp, resolvedConfigurations);
