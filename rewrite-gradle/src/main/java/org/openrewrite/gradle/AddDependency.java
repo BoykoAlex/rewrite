@@ -32,6 +32,8 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.maven.table.MavenMetadataFailures;
 import org.openrewrite.maven.tree.GroupArtifact;
 import org.openrewrite.semver.Semver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -40,6 +42,8 @@ import static java.util.Collections.singletonList;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AddDependency.class);
 
     @EqualsAndHashCode.Exclude
     MavenMetadataFailures metadataFailures = new MavenMetadataFailures(this);
@@ -185,6 +189,10 @@ public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
         };
     }
 
+    private boolean isMyTest() {
+        return "jakarta.xml.bind-api".equals(artifactId);
+    }
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Scanned acc) {
         return Preconditions.check(!acc.configurationsByProject.isEmpty(),
@@ -195,12 +203,19 @@ public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
                         if (!(tree instanceof JavaSourceFile)) {
                             return (J) tree;
                         }
+
+                        if (isMyTest()) {
+                            LOG.error("!!! START Add XML Binds !!!");
+                        }
                         JavaSourceFile s = (JavaSourceFile) tree;
                         Optional<JavaProject> maybeJp = s.getMarkers().findFirst(JavaProject.class);
                         Optional<GradleProject> maybeGp = s.getMarkers().findFirst(GradleProject.class);
                         if (!maybeJp.isPresent() ||
                                 (onlyIfUsing != null && !acc.usingType.getOrDefault(maybeJp.get(), false)) || !acc.configurationsByProject.containsKey(maybeJp.get()) ||
                                 !maybeGp.isPresent()) {
+                            if (isMyTest()) {
+                                LOG.error("!!! EARLY EXIT !!!");
+                            }
                             return s;
                         }
 
@@ -211,16 +226,29 @@ public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
                                 acc.configurationsByProject.getOrDefault(jp, new HashSet<>()) :
                                 new HashSet<>(singletonList(configuration));
                         if (resolvedConfigurations.isEmpty()) {
+                            if (isMyTest()) {
+                                LOG.error("!!! Add implementation");
+                            }
                             resolvedConfigurations.add("implementation");
+                        }
+
+                        if (isMyTest()) {
+                            LOG.error("!!! Resolved configs: " + String.join(", ", resolvedConfigurations));
                         }
 
                         GradleConfigurationFilter gradleConfigurationFilter = new GradleConfigurationFilter(gp, resolvedConfigurations);
                         gradleConfigurationFilter.removeTransitiveConfigurations();
                         gradleConfigurationFilter.removeConfigurationsContainingDependency(new GroupArtifact(groupId, artifactId));
-                        gradleConfigurationFilter.removeConfigurationsContainingTransitiveDependency(new GroupArtifact(groupId, artifactId));
+                        if (Boolean.TRUE.equals(acceptTransitive)) {
+                            gradleConfigurationFilter.removeConfigurationsContainingTransitiveDependency(new GroupArtifact(groupId, artifactId));
+                        }
                         resolvedConfigurations = gradleConfigurationFilter.getFilteredConfigurations();
 
                         if (resolvedConfigurations.isEmpty()) {
+                            if (isMyTest()) {
+                                LOG.error("!!! NO RESOLVED CONFIGS !!!");
+                            }
+
                             return s;
                         }
 
@@ -231,9 +259,16 @@ public class AddDependency extends ScanningRecipe<AddDependency.Scanned> {
                                 s = (JavaSourceFile) jvmTestSuite.addDependency(resolvedConfiguration, groupId, artifactId, version, versionPattern, classifier, extension, metadataFailures, null, ctx)
                                         .visitNonNull(s, ctx);
                             } else {
+                                if (isMyTest()) {
+                                    LOG.error("!!! DEPENDENCY VISITOR !!!");
+                                }
                                 s = (JavaSourceFile) new AddDependencyVisitor(groupId, artifactId, version, versionPattern, resolvedConfiguration,
                                         classifier, extension, metadataFailures, this::isTopLevel, null).visitNonNull(s, ctx);
                             }
+                        }
+
+                        if (isMyTest()) {
+                            LOG.error("!!! Done with Add XML Bind !!!");
                         }
 
                         return s;
